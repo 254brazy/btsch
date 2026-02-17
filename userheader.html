@@ -1,0 +1,9 @@
+ <div class="user-info">
+            <div class="user-avatar">
+                <?php echo strtoupper(substr($_SESSION['full_name'], 0, 2));?>
+            </div>
+            <div>
+                <div style="font-weight: 600;"><?php echo htmlspecialchars($_SESSION['full_name']); ?></div>
+                <div style="font-size: 0.8rem; color: #666;"><?php echo htmlspecialchars($_SESSION['role']); ?></div>
+                <div style="font-size: 0.8rem; color: #666;"><?php echo htmlspecialchars($_SESSION['branch']); ?> Branch</div>
+            </div>

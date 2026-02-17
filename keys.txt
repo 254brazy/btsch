@@ -1,0 +1,292 @@
+curl -X POST https://api.lipana.dev/v1/payment-links \
+  -H "x-api-key: lip_sk_live_YOUR_SECRET_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Premium Subscription",
+    "amount": 5000,
+    "currency": "KES"
+  }'
+
+
+
+  curl -X GET https://api.lipana.dev/v1/transactions \
+  -H "x-api-key: lip_sk_live_YOUR_SECRET_KEY"
+
+  curl -X GET https://api.lipana.dev/v1/transactions \
+  -H "Authorization: ApiKey lip_sk_live_YOUR_SECRET_KEY"
+
+  curl -X GET https://api.lipana.dev/v1/transactions \
+  -H "Authorization: Bearer lip_sk_live_YOUR_SECRET_KEY"
+
+  # PHP SDK - Coming Soon
+# For now, use direct API calls with cURL
+
+$ch = curl_init('https://api.lipana.dev/v1/transactions/push-stk');
+curl_setopt($ch, CURLOPT_POST, true);
+curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode([
+    'phone' => '+254712345678',
+    'amount' => 1000
+]));
+curl_setopt($ch, CURLOPT_HTTPHEADER, [
+    'x-api-key: your-api-key',
+    'Content-Type: application/json'
+]);
+$response = curl_exec($ch);
+
+CREATE TABLE users (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    phone VARCHAR(20) UNIQUE,
+    is_active BOOLEAN DEFAULT 0,
+    expires_at DATETIME
+);
+
+CREATE TABLE payments (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    phone VARCHAR(20),
+    amount INT,
+    transaction_id VARCHAR(100),
+    status VARCHAR(20),
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+
+<?php
+$host = "localhost";
+$user = "root";
+$pass = "";
+$db   = "lipana_system";
+
+$conn = new mysqli($host, $user, $pass, $db);
+if ($conn->connect_error) {
+    die("DB Failed: " . $conn->connect_error);
+}
+?>
+
+<form method="POST" action="stk_push.php">
+  <input type="text" name="phone" required placeholder="07XXXXXXXX">
+
+  <select name="amount">
+    <option value="100">1 Day - Ksh 100</option>
+    <option value="300">7 Days - Ksh 300</option>
+    <option value="1000">30 Days - Ksh 1000</option>
+  </select>
+
+  <button type="submit">Pay Now</button>
+</form>
+
+<?php
+include 'db.php';
+
+$apiKey = getenv('LIPANA_API_KEY');  
+$phone  = $_POST['phone'];
+$amount = $_POST['amount'];
+
+$data = [
+  "phone" => $phone,
+  "amount" => (int)$amount
+];
+
+$ch = curl_init("https://api.lipana.dev/v1/transactions/push-stk");
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+curl_setopt($ch, CURLOPT_POST, true);
+curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+curl_setopt($ch, CURLOPT_HTTPHEADER, [
+  "x-api-key: $apiKey",
+  "Content-Type: application/json"
+]);
+
+$response = curl_exec($ch);
+curl_close($ch);
+
+$res = json_decode($response, true);
+
+if ($res['success']) {
+  echo "✅ STK Sent! Enter PIN on your phone.";
+} else {
+  echo "❌ Payment failed.";
+}
+
+<?php
+include 'db.php';
+
+$webhook_secret = getenv('LIPANA_WEBHOOK_SECRET');
+$signature = $_SERVER['HTTP_X_LIPANA_SIGNATURE'] ?? '';
+$payload = file_get_contents("php://input");
+
+$expected = hash_hmac("sha256", $payload, $webhook_secret);
+if (!hash_equals($expected, $signature)) {
+    http_response_code(401);
+    exit("Invalid Signature");
+}
+
+$data = json_decode($payload, true);
+
+if ($data['event'] === "payment.success") {
+
+    $phone = $data['data']['phone'];
+    $amount = $data['data']['amount'];
+    $txn = $data['data']['transactionId'];
+
+    // ✅ Save payment
+    $conn->query("INSERT INTO payments (phone, amount, transaction_id, status)
+                  VALUES ('$phone','$amount','$txn','success')");
+
+    // ✅ Assign Duration
+    if ($amount == 100)  $days = 1;
+    if ($amount == 300)  $days = 7;
+    if ($amount == 1000) $days = 30;
+
+    $expiry = date("Y-m-d H:i:s", strtotime("+$days days"));
+
+    // ✅ Create/Update User Access
+    $check = $conn->query("SELECT id FROM users WHERE phone='$phone'");
+    if ($check->num_rows > 0) {
+        $conn->query("UPDATE users SET is_active=1, expires_at='$expiry' WHERE phone='$phone'");
+    } else {
+        $conn->query("INSERT INTO users (phone, is_active, expires_at)
+                      VALUES ('$phone',1,'$expiry')");
+    }
+}
+
+http_response_code(200);
+echo "OK";
+
+<?php
+include 'db.php';
+session_start();
+
+$phone = $_SESSION['phone'] ?? null;
+
+if (!$phone) {
+    die("❌ Login Required");
+}
+
+$res = $conn->query("SELECT * FROM users WHERE phone='$phone'");
+$user = $res->fetch_assoc();
+
+if (!$user || !$user['is_active']) {
+    die("❌ Access Disabled");
+}
+
+if (strtotime($user['expires_at']) < time()) {
+    $conn->query("UPDATE users SET is_active=0 WHERE phone='$phone'");
+    die("❌ Subscription Expired");
+}
+
+
+
+<?php
+include 'lipanadb.php';
+$env=parse_ini_file(__DIR__ . "/lipa.env");
+if($env===false){
+    die("failed to load lipa.env");
+}
+
+
+$apiKey = $env['LIP_PK'];  
+$phone  = $_POST['phone'];
+$amount = $_POST['amount'];
+
+$data = [
+  "phone" => $phone,
+  "amount" => (int)$amount
+];
+
+$ch = curl_init("https://api.lipana.dev/v1/transactions/push-stk");
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+curl_setopt($ch, CURLOPT_POST, true);
+curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+curl_setopt($ch, CURLOPT_HTTPHEADER, [
+  "x-api-key: $apiKey",
+  "Content-Type: application/json"
+]);
+
+$response = curl_exec($ch);
+curl_close($ch);
+
+$res = json_decode($response, true);
+
+if ($res['success']) {
+  echo "✅ STK Sent! Enter PIN on your phone.";
+} else {
+  echo "❌ Payment failed.";
+}
+
+<?php
+
+include 'lipanadb.php';
+
+// ✅ Load webhook secret
+$env = parse_ini_file(__DIR__ . "/webhook.env");
+if ($env === false || !isset($env['WEBHOOK_PK'])) {
+    http_response_code(500);
+    exit("Webhook secret missing");
+}
+
+$webhook_secret = $env['WEBHOOK_PK'];
+
+// ✅ Get signature
+$signature = $_SERVER['HTTP_X_LIPANA_SIGNATURE'] ?? '';
+
+// ✅ Read payload
+$payload = file_get_contents("php://input");
+
+// ✅ Verify signature
+$expected = hash_hmac("sha256", $payload, $webhook_secret);
+if (!hash_equals($expected, $signature)) {
+    http_response_code(401);
+    exit("Invalid Signature");
+}
+
+// ✅ Decode JSON
+$data = json_decode($payload, true);
+
+// ✅ ONLY process successful transactions
+if ($data['event'] === "transaction.success") {
+
+    $phone  = $data['data']['phone'];
+    $amount = $data['data']['amount'];
+    $txn    = $data['data']['transaction_id'];
+    $status = $data['data']['status'];
+
+    // ✅ PREVENT DUPLICATES
+    $check = $conn->query("SELECT id FROM payments WHERE transaction_id='$txn'");
+    if ($check->num_rows > 0) {
+        http_response_code(200);
+        exit("Duplicate ignored");
+    }
+
+    // ✅ Save payment
+    $conn->query("
+        INSERT INTO payments (phone, amount, transaction_id, status)
+        VALUES ('$phone','$amount','$txn','$status')
+    ");
+
+    // ✅ Assign Duration
+    if ($amount == 10)   $days = 1;
+    elseif ($amount == 100)  $days = 3;
+    elseif ($amount == 300)  $days = 7;
+    elseif ($amount == 1000) $days = 30;
+    else $days = 1;
+
+    $expiry = date("Y-m-d H:i:s", strtotime("+$days days"));
+
+    // ✅ Create / Update User
+    $checkUser = $conn->query("SELECT id FROM users WHERE phone='$phone'");
+    if ($checkUser->num_rows > 0) {
+        $conn->query("
+            UPDATE users 
+            SET is_active=1, expires_at='$expiry' 
+            WHERE phone='$phone'
+        ");
+    } else {
+        $conn->query("
+            INSERT INTO users (phone, is_active, expires_at)
+            VALUES ('$phone',1,'$expiry')
+        ");
+    }
+}
+
+// ✅ Always return 200 to Lipana
+http_response_code(200);
+echo "OK";

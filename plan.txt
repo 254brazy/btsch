@@ -1,0 +1,3 @@
+functionalities: job tracking, customer tracking, item tracking, spares tracking recording and check,
+users: technicians,users,suppliers
+technicians: staff management, re

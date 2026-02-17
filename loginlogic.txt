@@ -1,0 +1,186 @@
+<?php
+session_start();
+require 'secrete.php';
+error_reporting(1);
+
+$message = '';
+$login_type = isset($_GET['type']) ? $_GET['type'] : 'company';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
+    $usertype=trim($_POST['usertype']);
+    $username = trim($_POST['username']);
+    $tel = trim($_POST['tel']);
+    $company = trim($_POST['company']);
+    $email = trim($_POST['email']);
+    $password = $_POST['password'];
+    $user_role = $_POST['user_role'];
+
+    if (empty($username) || empty($tel) || empty($company) || empty($email) || empty($password)|| empty($usertype)) {
+        $message = "<div class='message error'>Please fill all fields</div>";
+    } 
+    else {
+        // Check if username exists
+        if($usertype==="technician"){
+
+        $user_check = $conn->prepare("SELECT username FROM users WHERE username=?");
+        $user_check->bind_param("s", $username);
+        $user_check->execute();
+        $user_result = $user_check->get_result();
+        
+        if ($user_result->num_rows === 0) {
+            $message = "<div class='message error'>No user found with this username</div>";
+        } else {
+            // Verify credentials with role check
+            $login_check = $conn->prepare("SELECT passhash FROM users WHERE username=? AND tel=? AND email=? AND company=?");
+            $login_check->bind_param("ssss", $username, $tel, $email, $company);
+            $login_check->execute();
+            $login_result = $login_check->get_result();
+            $user_data = $login_result->fetch_assoc();
+            
+            if (password_verify($password, $user_data['passhash'])) {
+               
+                    // Create session
+                    $_SESSION['csrftoken'] = bin2hex(random_bytes(32));
+                    $_SESSION['username'] = $username;
+                    $_SESSION['company'] = $company;
+                    $_SESSION['user_type'] = $usertype;
+                    $_SESSION['email'] = $email;
+                    
+                    // Update token in database
+                    $set_token = $conn->prepare("UPDATE users SET token=? WHERE username=? AND company=?");
+                    $set_token->bind_param("sss", $_SESSION['csrftoken'], $username, $company);
+                    
+                    if ($set_token->execute()) {
+                        // Redirect based on user type
+                        
+                        header("Location:technicians_dashbaord.php");
+                    }
+            }else {
+                $message = "<div class='message error'>Invalid credentials. Please check your details.</div>";
+                }
+            } 
+        }
+        if($usertype==="parts"){
+        
+
+        $user_check = $conn->prepare("SELECT username FROM sparecompany WHERE username=?");
+        $user_check->bind_param("s", $username);
+        $user_check->execute();
+        $user_result = $user_check->get_result();
+        
+        if ($user_result->num_rows === 0) {
+            $message = "<div class='message error'>No user found with this username</div>";
+        } else {
+            // Verify credentials with role check
+            $login_check = $conn->prepare("SELECT passhash FROM sparecompany WHERE username=? AND tel=? AND email=? AND company=?");
+            $login_check->bind_param("ssss", $username, $tel, $email, $company);
+            $login_check->execute();
+            $login_result = $login_check->get_result();
+            $user_data = $login_result->fetch_assoc();
+            
+            if (password_verify($password, $user_data['passhash'])) {
+               
+                    // Create session
+                    $_SESSION['csrftoken'] = bin2hex(random_bytes(32));
+                    $_SESSION['username'] = $username;
+                    $_SESSION['company'] = $company;
+                    $_SESSION['user_type'] = $usertype;
+                    $_SESSION['email'] = $email;
+                    
+                    // Update token in database
+                    $set_token = $conn->prepare("UPDATE sparecompany SET token=? WHERE username=? AND company=?");
+                    $set_token->bind_param("sss", $_SESSION['csrftoken'], $username, $company);
+                    
+                    if ($set_token->execute()) {
+                        // Redirect based on user type
+                        
+                        header("Location:parts_company
+                        _dashbaord.php");
+                    }
+            }else {
+                $message = "<div class='message error'>Invalid credentials. Please check your details.</div>";
+                }   
+        }
+        if($usertype==="transport"){
+
+        $user_check = $conn->prepare("SELECT username FROM transportcompany WHERE username=?");
+        $user_check->bind_param("s", $username);
+        $user_check->execute();
+        $user_result = $user_check->get_result();
+        
+        if ($user_result->num_rows === 0) {
+            $message = "<div class='message error'>No user found with this username</div>";
+        } else {
+            // Verify credentials with role check
+            $login_check = $conn->prepare("SELECT passhash FROM transportcompany WHERE username=? AND tel=? AND email=? AND company=?");
+            $login_check->bind_param("ssss", $username, $tel, $email, $company);
+            $login_check->execute();
+            $login_result = $login_check->get_result();
+            $user_data = $login_result->fetch_assoc();
+            
+            if (password_verify($password, $user_data['passhash'])) {
+               
+                    // Create session
+                    $_SESSION['csrftoken'] = bin2hex(random_bytes(32));
+                    $_SESSION['username'] = $username;
+                    $_SESSION['company'] = $company;
+                    $_SESSION['user_type'] = $usertype;
+                    $_SESSION['email'] = $email;
+                    
+                    // Update token in database
+                    $set_token = $conn->prepare("UPDATE transportcompany SET token=? WHERE username=? AND company=?");
+                    $set_token->bind_param("sss", $_SESSION['csrftoken'], $username, $company);
+                    
+                    if ($set_token->execute()) {
+                        // Redirect based on user type
+                        
+                        header("Location:transport_company_dashbaord.php");
+                    }
+            }else {
+                $message = "<div class='message error'>Invalid credentials. Please check your details.</div>";
+                }
+        }
+        if($usertype==="customer"){
+
+        $user_check = $conn->prepare("SELECT username FROM customers WHERE username=?");
+        $user_check->bind_param("s", $username);
+        $user_check->execute();
+        $user_result = $user_check->get_result();
+        
+        if ($user_result->num_rows === 0) {
+            $message = "<div class='message error'>No user found with this username</div>";
+        } else {
+            // Verify credentials with role check
+            $login_check = $conn->prepare("SELECT passhash FROM customers WHERE username=? AND tel=? AND email=? AND company=?");
+            $login_check->bind_param("ssss", $username, $tel, $email, $company);
+            $login_check->execute();
+            $login_result = $login_check->get_result();
+            $user_data = $login_result->fetch_assoc();
+            
+            if (password_verify($password, $user_data['passhash'])) {
+               
+                    // Create session
+                    $_SESSION['csrftoken'] = bin2hex(random_bytes(32));
+                    $_SESSION['username'] = $username;
+                    $_SESSION['company'] = $company;
+                    $_SESSION['user_type'] = $usertype;
+                    $_SESSION['email'] = $email;
+                    
+                    // Update token in database
+                    $set_token = $conn->prepare("UPDATE customers SET token=? WHERE username=? AND company=?");
+                    $set_token->bind_param("sss", $_SESSION['csrftoken'], $username, $company);
+                    
+                    if ($set_token->execute()) {
+                        // Redirect based on user type
+                        
+                        header("Location:customer_dashbaord.php");
+                    }
+            }else {
+                $message = "<div class='message error'>Invalid credentials. Please check your details.</div>";
+                }
+        }
+       
+        }
+    }
+
+?>

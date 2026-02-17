@@ -1,0 +1,32 @@
+<div class="header-actions">
+    <button class="btn btn-outline" onclick="showModal('navigationModal')">
+        📱 Navigation
+    </button>
+</div>
+
+<style>
+.header-actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.btn-outline {
+    background: transparent;
+    border: 2px solid var(--secondary);
+    color: var(--secondary);
+    padding: 8px 15px;
+}
+
+.btn-outline:hover {
+    background: var(--secondary);
+    color: white;
+}
+
+/* Hide on desktop if you want, show on mobile */
+@media (min-width: 769px) {
+    .header-actions {
+        display: none;
+    }
+}
+</style>

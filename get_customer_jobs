@@ -1,0 +1,183 @@
+<?php
+require_once '../config.php';
+require_once '../auth.php';
+
+if(!isset($_GET['job_id'])) {
+    die('Job ID required');
+}
+
+$job_id = intval($_GET['job_id']);
+$customer_id = $_SESSION['customer_id'];
+
+// Get job details
+$job_query = "SELECT * FROM tech_jobs WHERE id = ? AND customer_id = ?";
+$stmt = $conn->prepare($job_query);
+$stmt->bind_param("ii", $job_id, $customer_id);
+$stmt->execute();
+$job_result = $stmt->get_result();
+
+if($job_result->num_rows == 0) {
+    die('Job not found');
+}
+
+$job = $job_result->fetch_assoc();
+
+// Get parts for this job
+$parts_query = "SELECT * FROM job_parts WHERE jobid = ?";
+$stmt = $conn->prepare($parts_query);
+$stmt->bind_param("i", $job_id);
+$stmt->execute();
+$parts_result = $stmt->get_result();
+
+// Get services for this job
+$services_query = "SELECT * FROM tech_job_services WHERE jobid = ?";
+$stmt = $conn->prepare($services_query);
+$stmt->bind_param("i", $job_id);
+$stmt->execute();
+$services_result = $stmt->get_result();
+
+// Get quote if exists
+$quote_query = "SELECT * FROM tech_job_prequotes WHERE jobid = ?";
+$stmt = $conn->prepare($quote_query);
+$stmt->bind_param("i", $job_id);
+$stmt->execute();
+$quote_result = $stmt->get_result();
+$has_quote = $quote_result->num_rows > 0;
+$quote = $has_quote ? $quote_result->fetch_assoc() : null;
+?>
+
+<div class="job-details-grid">
+    <div class="detail-item">
+        <h4>Customer Name</h4>
+        <p><?php echo htmlspecialchars($job['customer_name1'] . ' ' . $job['customer_name2']); ?></p>
+    </div>
+    <div class="detail-item">
+        <h4>Item</h4>
+        <p><?php echo htmlspecialchars($job['item']); ?></p>
+    </div>
+    <div class="detail-item">
+        <h4>Model</h4>
+        <p><?php echo htmlspecialchars($job['model']); ?></p>
+    </div>
+    <div class="detail-item">
+        <h4>Serial Number</h4>
+        <p><?php echo htmlspecialchars($job['serial'] ?? 'N/A'); ?></p>
+    </div>
+    <div class="detail-item">
+        <h4>Issue Reported</h4>
+        <p><?php echo htmlspecialchars($job['issue']); ?></p>
+    </div>
+    <div class="detail-item">
+        <h4>Description</h4>
+        <p><?php echo htmlspecialchars($job['description']); ?></p>
+    </div>
+    <div class="detail-item">
+        <h4>Current Status</h4>
+        <p>
+            <?php 
+            $status_class = 'status-' . str_replace(' ', '-', $job['status']);
+            $status_text = ucfirst(str_replace('-', ' ', $job['status']));
+            ?>
+            <span class="status-badge <?php echo $status_class; ?>"><?php echo $status_text; ?></span>
+        </p>
+    </div>
+</div>
+
+<?php if($parts_result->num_rows > 0): ?>
+<div class="parts-list">
+    <h4>Parts Required</h4>
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Part Name</th>
+                <th>Quantity</th>
+                <th>Price</th>
+                <th>Total</th>
+            </tr>
+        </thead>
+        <tbody>
+            <?php 
+            $parts_total = 0;
+            while($part = $parts_result->fetch_assoc()): 
+                $parts_total += $part['total'];
+            ?>
+            <tr>
+                <td><?php echo htmlspecialchars($part['part']); ?></td>
+                <td><?php echo $part['quantity']; ?></td>
+                <td>$<?php echo number_format($part['price'], 2); ?></td>
+                <td>$<?php echo number_format($part['total'], 2); ?></td>
+            </tr>
+            <?php endwhile; ?>
+        </tbody>
+    </table>
+</div>
+<?php endif; ?>
+
+<?php if($services_result->num_rows > 0): ?>
+<div class="services-list">
+    <h4>Services Required</h4>
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Service</th>
+                <th>Quantity</th>
+                <th>Price</th>
+                <th>Total</th>
+            </tr>
+        </thead>
+        <tbody>
+            <?php 
+            $services_total = 0;
+            while($service = $services_result->fetch_assoc()): 
+                $services_total += $service['total'];
+            ?>
+            <tr>
+                <td><?php echo htmlspecialchars($service['service']); ?></td>
+                <td><?php echo $service['quantity']; ?></td>
+                <td>$<?php echo number_format($service['price'], 2); ?></td>
+                <td>$<?php echo number_format($service['total'], 2); ?></td>
+            </tr>
+            <?php endwhile; ?>
+        </tbody>
+    </table>
+</div>
+<?php endif; ?>
+
+<?php if($has_quote && $quote): ?>
+<div class="quote-summary" style="margin-top: 20px; padding-top: 15px; border-top: 1px solid var(--border-color);">
+    <h4>Quote Summary</h4>
+    <div class="job-details-grid">
+        <div class="detail-item">
+            <h4>Parts Subtotal</h4>
+            <p>$<?php echo number_format($quote['parts_subtotal'], 2); ?></p>
+        </div>
+        <div class="detail-item">
+            <h4>Services Subtotal</h4>
+            <p>$<?php echo number_format($quote['service_subtotal'], 2); ?></p>
+        </div>
+        <div class="detail-item">
+            <h4>Total Amount</h4>
+            <p>$<?php echo number_format($quote['total'], 2); ?></p>
+        </div>
+        <div class="detail-item">
+            <h4>Quote Status</h4>
+            <p>
+                <?php if($quote['status'] == 'pending'): ?>
+                    <span class="status-badge status-waiting-approval">Waiting Approval</span>
+                <?php elseif($quote['status'] == 'approved'): ?>
+                    <span class="status-badge status-completed">Approved</span>
+                <?php elseif($quote['status'] == 'declined'): ?>
+                    <span class="status-badge status-pending">Declined</span>
+                <?php endif; ?>
+            </p>
+        </div>
+    </div>
+    
+    <?php if($quote['status'] == 'pending'): ?>
+    <div class="quote-actions">
+        <button class="action-btn approve-btn" onclick="approveQuote(<?php echo $quote['id']; ?>)">Approve Quote</button>
+        <button class="action-btn decline-btn" onclick="declineQuote(<?php echo $quote['id']; ?>)">Decline Quote</button>
+    </div>
+    <?php endif; ?>
+</div>
+<?php endif; ?>

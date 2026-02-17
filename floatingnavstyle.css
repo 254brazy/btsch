@@ -1,0 +1,119 @@
+ /* Navigation Modal Specific Styles */
+        .nav-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 3000; /* Higher than form modals */
+            align-items: center;
+            justify-content: center;
+        }
+
+        .nav-modal-content {
+            background: white;
+            border-radius: 10px;
+            width: 90%;
+            max-width: 400px;
+            max-height: 80vh;
+            overflow: hidden;
+        }
+        
+        .nav-modal-header {
+            padding: 20px 25px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--primary);
+            color: white;
+        }
+        
+        .nav-modal-header h3 {
+            margin: 0;
+            color: white;
+        }
+        
+        .nav-close {
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: white;
+        }
+        
+        .nav-modal-body {
+            padding: 0;
+            max-height: 60vh;
+            overflow-y: auto;
+        }
+        
+        .mobile-nav ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        
+        .mobile-nav li {
+            border-bottom: 1px solid #eee;
+        }
+        
+        .mobile-nav a {
+            display: block;
+            padding: 15px 20px;
+            text-decoration: none;
+            color: var(--dark);
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+        
+        .mobile-nav a:hover {
+            background: var(--light);
+            padding-left: 25px;
+        }
+        
+        .mobile-nav a.active {
+            background: var(--secondary);
+            color: white;
+            border-left: 4px solid var(--primary);
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            aside {
+                transform: translateX(-100%);
+                transition: transform 0.3s;
+            }
+            
+            aside.active {
+                transform: translateX(0);
+            }
+            
+            article {
+                margin-left: 0;
+            }
+            
+            footer {
+                margin-left: 0;
+            }
+            
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+            }
+            
+            /* Show navigation button only on mobile */
+            .header-actions {
+                display: flex;
+            }
+        }
+        
+        /* Hide navigation button on desktop */
+        @media (min-width: 769px) {
+            .header-actions {
+                display: none;
+            }
+        }
